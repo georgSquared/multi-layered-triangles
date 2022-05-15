@@ -1,0 +1,6 @@
+./src/main/resources
+/.idea
+/.bsp/
+/.scalafmt.conf
+/.idea/
+/target/
