@@ -4,3 +4,4 @@
 /.scalafmt.conf
 /.idea/
 /target/
+/src/main/scala/META-INF/
