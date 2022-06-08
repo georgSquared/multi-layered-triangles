@@ -18,7 +18,7 @@ object App {
 
     val processed_df = processDataFrame(df)
 
-    processed_df.show(10000, truncate = false)
+    processed_df.show(1, truncate = false)
 
   }
 
