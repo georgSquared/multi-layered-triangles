@@ -69,4 +69,12 @@ object DataHandler {
       .orderBy("graph_id", "src")
   }
 
+  // write results into parquet files
+  //    val path_to_results = "tmp/spark_output"
+  //
+  //    processed_df.write
+  //      .format("parquet")
+  //      .option("header", "true")
+  //      .save(s"$path_to_results/processed.parquet")
+
 }
