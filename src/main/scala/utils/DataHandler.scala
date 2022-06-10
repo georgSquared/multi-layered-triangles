@@ -30,6 +30,10 @@ object DataHandler {
       .csv(path)
   }
 
+  def processFileName(input_text: String): String = {
+    input_text.split("/").takeRight(2).mkString(" ")
+  }
+
   /*
    * Preprocess tha Dataframe so that all edge pairs are collected into an array
    * The resulting dataframe should hold a single graph in each row and an "edges" column that hold the
@@ -41,13 +45,14 @@ object DataHandler {
       .withColumn("dest", element_at(col("tmp"), 2).cast("int"))
       .withColumn("input_file", input_file_name())
       .withColumn("graph_id", hash(col("input_file")))
-      .drop("tmp", "raw", "input_file")
+      .drop("tmp", "raw")
       .orderBy("graph_id", "src", "dest")
+      .filter(col("src") =!= col("dest"))
       .withColumn("edge_pair", sort_array(array("src", "dest")))
       .groupBy("graph_id", "edge_pair")
-      .agg(first("src"), first("dest"))
+      .agg(first("src"), first("dest"), first("input_file"))
       .drop("first(src)", "first(dest)")
-      .groupBy("graph_id")
+      .groupBy("graph_id", "first(input_file)")
       .agg(collect_list("edge_pair") as "unsorted_edges")
       .withColumn("edges", sort_array(col("unsorted_edges")))
       .drop("unsorted_edges")
@@ -76,5 +81,7 @@ object DataHandler {
   //      .format("parquet")
   //      .option("header", "true")
   //      .save(s"$path_to_results/processed.parquet")
+
+  //    val processed_df = spark.read.parquet("tmp/spark_output/processed.parquet")
 
 }

@@ -3,7 +3,8 @@ package auth.dws.mmd
 import utils.DataHandler.{
   createDataFrame,
   processDataFrame,
-  processDataFrameAlt
+  processDataFrameAlt,
+  processFileName
 }
 
 import org.apache.spark.sql.{SaveMode, SparkSession}
@@ -21,48 +22,51 @@ object App {
       .getOrCreate()
 
 //    Read and process dataframe from the start
-//    val raw_df = createDataFrame()
-//    val processed_df = processDataFrame(raw_df)
+    val raw_df = createDataFrame()
+    val processed_df = processDataFrame(raw_df)
 
-    val processed_df = spark.read.parquet("tmp/spark_output/processed.parquet")
+    val processFileNameUDF = udf(processFileName _)
 
-    val df = processed_df.sample(0.1)
-    df.show(1, false)
+    val df = processed_df
+      .withColumn("file_name", processFileNameUDF(col("first(input_file)")))
+      .drop("first(input_file)")
 
-    val countTriangles =
-      (edges: mutable.WrappedArray[mutable.WrappedArray[Int]]) => {
-        val states = scala.collection.mutable.Map[String, Set[String]]()
+    df.show()
 
-        for (edge <- edges) {
-          // Cast to strings so they can be used as map keys
-          val src = edge(0).toString
-          val dest = edge(1).toString
-          println(s"EDGE: $edge. SRC: $src. DST: $dest")
+    def countTriangles(edges: mutable.WrappedArray[mutable.WrappedArray[Int]])
+      : Array[String] = {
+      val states = scala.collection.mutable.Map[String, Set[String]]()
 
-          if (states.contains(src) && states.contains(dest)) {
-            val commonNodes = states(src).intersect(states(dest))
-            for (node <- commonNodes if node != src && node != dest) {
-//              println("#####################")
-//              println(s"Got a triangle with $src, $dest, $node")
-//              println("#####################")
-              val triangle = Array(src, dest, node.toString).sorted
-              if (states.contains("triangles"))
-                states.update("triangles",
-                              states("triangles") + triangle.mkString(","))
-              else states.update("triangles", Set(triangle.mkString(",")))
-            }
-          } else {
-            if (states.contains(dest)) states.update(dest, states(dest) + src)
-            else states.update(dest, Set(src))
+      for (edge <- edges) {
+        // Cast to strings so they can be used as map keys
+        val src = edge(0).toString
+        val dest = edge(1).toString
+
+        if (states.contains(src) && states.contains(dest)) {
+          val commonNodes = states(src).intersect(states(dest))
+          for (node <- commonNodes) {
+
+            val triangle = Array(src, dest, node).sorted
+
+            if (states.contains("triangles"))
+              states.update("triangles",
+                            states("triangles") + triangle.mkString("-"))
+            else states.update("triangles", Set(triangle.mkString("-")))
           }
+        } else {
+          if (states.contains(dest)) states.update(dest, states(dest) + src)
+          else states.update(dest, Set(src))
         }
-        edges
-          .map(x => x.length)
       }
 
-    val countTrianglesUDF = udf(countTriangles)
+      states("triangles").toArray
+    }
 
-    df.withColumn("temp", countTrianglesUDF(col("edges"))).show()
+    val countTrianglesUDF = udf(countTriangles _)
+
+    df.withColumn("triangles_array", countTrianglesUDF(col("edges")))
+      .withColumn("triangles_count", size(col("triangles_array")))
+      .show()
 
   }
 
