@@ -22,16 +22,22 @@ object App {
       .getOrCreate()
 
 //    Read and process dataframe from the start
+    val startReading: Double = System.nanoTime()
     val raw_df = createDataFrame()
+    val endReading: Double = System.nanoTime()
+
+    val startPreprocessing: Double = System.nanoTime()
     val processed_df = processDataFrame(raw_df)
+
+    val endPreprocessing: Double = System.nanoTime()
 
     val processFileNameUDF = udf(processFileName _)
 
+    val startPreprocessingFileName: Double = System.nanoTime()
     val df = processed_df
       .withColumn("file_name", processFileNameUDF(col("first(input_file)")))
       .drop("first(input_file)")
-
-    df.show()
+    val endPreprocessingFileName: Double = System.nanoTime()
 
     def countTriangles(edges: mutable.WrappedArray[mutable.WrappedArray[Int]])
       : Array[String] = {
@@ -64,9 +70,35 @@ object App {
 
     val countTrianglesUDF = udf(countTriangles _)
 
+    val startTriangles: Double = System.nanoTime()
     df.withColumn("triangles_array", countTrianglesUDF(col("edges")))
       .withColumn("triangles_count", size(col("triangles_array")))
-      .show()
+
+    val endTriangles: Double = System.nanoTime()
+
+    import spark.implicits._
+
+    val startTopK: Double = System.nanoTime()
+    val occurrence = trianglesDF.withColumn("trianglesAsStrings", explode($"triangles_array"))
+      .groupBy("trianglesAsStrings")
+      .count()
+
+    val endTopK: Double = System.nanoTime()
+
+    occurrence.orderBy(desc("count")).limit(10).show()
+    //occurrence.repartition(1).write.csv("caida_triangles.csv")
+
+    val readingDuration = (endReading - startReading) / 1e9d
+    val preprocessingDuration = (endPreprocessing - startPreprocessing) / 1e9d
+    val preprocessingFileNameDuration = (endPreprocessingFileName - startPreprocessingFileName) / 1e9d
+    val trianglesDuration = (endTriangles - startTriangles) / 1e9d
+    val topKduration = (endTopK - startTopK) / 1e9d
+
+    println(s"Reading duration: $readingDuration sec")
+    println(s"Preprocessing duration: $preprocessingDuration sec")
+    println(s"Preprocessing file name duration: $preprocessingFileNameDuration sec")
+    println(s"Triangle count duration: $trianglesDuration sec")
+    println(s"Top k=10 duration: $topKduration sec")
 
   }
 
