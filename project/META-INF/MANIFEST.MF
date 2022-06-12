@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Main-Class: auth.dws.mmd.App
+Class-Path: /home/ozzy/IdeaProjects/multi-layered-triangles-master/src/m
+ ain/scala
+
