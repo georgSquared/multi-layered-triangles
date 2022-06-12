@@ -87,17 +87,12 @@ object App {
     val occurrence = trianglesDF.withColumn("trianglesAsStrings", explode($"triangles_array"))
       .groupBy("trianglesAsStrings")
       .count()
-//    val occurrence = trianglesDF.withColumn("trianglesAsStrings", explode($"triangles_array"))
-//  .groupBy(col("trianglesAsStrings")).agg(count("*").alias("count"))
-//  .show()
-
 
     occurrence.orderBy(desc("count")).limit(10).show()
-    occurrence.repartition(1).write.csv("caida_triangles.csv")
+    //occurrence.repartition(1).write.csv("caida_triangles.csv")
 
 
     val endTopK: Double = System.nanoTime()
-
 
     val readingDuration = (endReading - startReading) / 1e9d
     val preprocessingDuration = (endPreprocessing - startPreprocessing) / 1e9d
