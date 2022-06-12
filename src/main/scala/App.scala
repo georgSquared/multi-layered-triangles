@@ -24,12 +24,12 @@ object App {
       // Read and process dataframe from the start
       val startReading: Double = System.nanoTime()
       val raw_df = createDataFrame(graphs = "caida")
-      raw_df.show()
+//      raw_df.show()
       val endReading: Double = System.nanoTime()
 
       val startPreprocessing: Double = System.nanoTime()
       val processed_df = processDataFrame(raw_df)
-      processed_df.show()
+//      processed_df.show()
       val endPreprocessing: Double = System.nanoTime()
 
       val processFileNameUDF = udf(processFileName _)
@@ -76,7 +76,7 @@ object App {
       val trianglesDF = df
         .withColumn("triangles_array", countTrianglesUDF(col("edges")))
         .withColumn("triangles_count", size(col("triangles_array")))
-      trianglesDF.show()
+//      trianglesDF.show()
       val endTriangles: Double = System.nanoTime()
 
       val startTopK: Double = System.nanoTime()
@@ -85,7 +85,7 @@ object App {
         .withColumn("trianglesAsStrings", explode($"triangles_array"))
         .groupBy("trianglesAsStrings")
         .count()
-      occurrenceDF.show()
+//      occurrenceDF.show()
       val endTopK: Double = System.nanoTime()
 
       occurrenceDF.orderBy(desc("count")).limit(10).show()
