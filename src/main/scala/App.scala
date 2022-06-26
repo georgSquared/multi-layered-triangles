@@ -81,17 +81,21 @@ object App {
 
       val startTopK: Double = System.nanoTime()
       // Calculate the top triangles for each graph
-      val occurrenceDF = trianglesDF
-        .withColumn("trianglesAsStrings", explode($"triangles_array"))
-        .groupBy("trianglesAsStrings")
-        .count()
-//      occurrenceDF.show()
-      val endTopK: Double = System.nanoTime()
+      val occurrence = trianglesDF.select("triangles_array")
+        .withColumn("triangles_array", concat_ws(",",col("triangles_array")))
+        .rdd
+        .flatMap(row => {
+        row.toString().split(",")})
+        .map(x => (x, 1))
+        .reduceByKey(_+_)
+        .map(x => x.swap)
+        .sortByKey(false)
+        .take(10)
+        .foreach(println)
 
-      occurrenceDF.orderBy(desc("count")).limit(10).show()
-
-      // Write the results to a single CSV
-      //occurrenceDF.repartition(1).write.csv("caida_triangles.csv")
+      // Uncomment the next line if you want the frequencies of all the triangles (not only the top-k). Also comment the
+      // previous lines .take(10) and .foreach(println)
+      //val triangleFreq = occurrence.toDF().coalesce(1).write.csv("triangles_frequency_as_caida.csv")
 
       // Running time measurements
       // Note here that is no actions are called on Dataframes, these will not be accurate in regards to each operation
